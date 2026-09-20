@@ -61,6 +61,8 @@ fn insensitive_literals_match_case_variants_and_controls() {
             vec![root.join("Test_File"), root.join("test_file")]
         );
     } else {
+        #[cfg(windows)]
+        assert_eq!(matches(&lower, options(false, true)), vec![lower.clone()]);
         assert_eq!(
             matches(&root.join("TEST_FILE"), options(false, true)),
             vec![root.join("test_file")]

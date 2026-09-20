@@ -907,8 +907,13 @@ fn fill_todo(
     let pattern = &patterns[idx];
     let is_dir = path.is_directory;
     let curdir = path.as_ref() == Path::new(".");
-    match (pattern.has_metachars, is_dir) {
-        (false, _) => {
+    let direct_literal = !pattern.has_metachars
+        && (options.case_sensitive
+            || pattern.as_str().is_empty()
+            || pattern.as_str() == "."
+            || pattern.as_str() == "..");
+    match (direct_literal, is_dir) {
+        (true, _) => {
             debug_assert!(
                 pattern
                     .tokens
@@ -938,7 +943,7 @@ fn fill_todo(
                 add(todo, next_path);
             }
         }
-        (true, true) => {
+        (false, true) => {
             let dirs = fs::read_dir(path).and_then(|d| {
                 d.map(|e| {
                     e.map(|e| {
@@ -960,7 +965,7 @@ fn fill_todo(
             });
             match dirs {
                 Ok(mut children) => {
-                    if options.require_literal_leading_dot {
+                    if pattern.has_metachars && options.require_literal_leading_dot {
                         children.retain(|x| !x.1.to_str().unwrap().starts_with('.'));
                     }
                     children.sort_by(|p1, p2| p2.1.cmp(&p1.1));
@@ -987,7 +992,7 @@ fn fill_todo(
                 }
             }
         }
-        (true, false) => {
+        (false, false) => {
             // not a directory, nothing more to find
         }
     }
